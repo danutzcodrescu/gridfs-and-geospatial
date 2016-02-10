@@ -37,7 +37,7 @@ class Place
 		result=result.limit(limit) if !limit.nil?
 		array=[]
 		result.map do |place|
-			array <<Place.new(place)
+			array << Place.new(place)
 		end
 		array
 	end
@@ -46,12 +46,47 @@ class Place
 		self.class.collection
               .delete_one 
 	end
+	
+	def self.get_address_components( sort={:_id => 1}, offset=0, limit=9999999999999)
+
+			self.collection.find().aggregate([{:$project=> {"_id" => 1, "address_components" => 1, "formatted_address" => 1, "geometry.geolocation" => 1}},
+											{:$unwind => '$address_components'},{:$sort=>sort},{:$skip=> offset},{:$limit=>limit}])
+
+	end
+	
+	def self.get_country_names
+		result = self.collection.find().aggregate([{:$match => {"types"=>"country"}}, {:$project => {"address_components.long_name"=>1, "address_components.types"=>1}}, 
+											{:$unwind =>"$address_components"}, {:$group=>{ :_id=>'$address_components.long_name'}}])
+		return result.to_a.map{ |h| h[:_id]}									
+	end
+	
+	def self.find_ids_by_country_code (code)
+		result = self.collection.find().aggregate([{:$match => {"address_components.short_name" => code}}, {:$project => {"_id" => 1}}])
+		result.map {|doc| doc[:_id].to_s}
+		
+	end
+	
+	def self.create_indexes
+		self.collection.indexes.create_one("geometry.geolocation" => Mongo::Index::GEO2DSPHERE)
+	end
+	
+	def self.remove_indexes
+		self.collection.indexes.drop_one("geometry.geolocation_2dsphere")
+	end
+	
+	def self.near (point, max_meters=0)
+		self.collection.find('geometry.geolocation' => {:$near => {:$geometry => point.to_hash, :$maxDistance => max_meters}})
+	end
+	
+	def near (max=0)
+	  self.class.near(@point, max).each {|p| array=[]}
+	end
 
 	def self.to_places(coll)
-    result=[]
-    coll.map do |place|
-   		result << Place.new(place)
-   	end
-   	result
-  end
+	    result=[]
+	    coll.map do |place|
+	   		result << Place.new(place)
+	   	end
+	   	result
+  	end
 end
