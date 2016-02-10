@@ -1,8 +1,8 @@
 module PlacesHelper
-  def to_places(coll)
-     result = coll.map { |place| 
-     	Place.new(place) 
-     }   
-   	 return result
+  def self.to_places(coll)
+    result=[]
+    coll.each do |place|
+   		result<<Place.new(place)
+   	end
   end
 end
