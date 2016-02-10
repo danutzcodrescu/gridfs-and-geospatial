@@ -78,8 +78,11 @@ class Place
 		self.collection.find('geometry.geolocation' => {:$near => {:$geometry => point.to_hash, :$maxDistance => max_meters}})
 	end
 	
-	def near (max=0)
-	  self.class.near(@point, max).each {|p| array=[]}
+	def near( max_dist = 0)
+		
+	  self.class.to_places(self.near(@location, max_dist))
+	 	
+	 	
 	end
 
 	def self.to_places(coll)
