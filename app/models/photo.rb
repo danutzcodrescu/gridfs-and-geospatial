@@ -10,6 +10,7 @@ class Photo
 	end
 	
 	def initialize(params={})
+	    
 	    if params[:_id] && params[:metadata][:location]
 	         @id=params[:_id].to_s
 	         @location =  Point.new(params[:metadata][:location])
@@ -42,11 +43,10 @@ class Photo
     end
     
     def self.all (skip=0, limit=nil)
+        
         result= self.mongo_client.database.fs.find().skip(skip)
         result=result.limit(limit) if !limit.nil?
-        result.map do |doc| 
-            Photo.new(doc)
-        end
+        result.map {|photo| Photo.new(photo)}
     end
     
     def self.find (id)
