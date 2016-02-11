@@ -18,7 +18,7 @@ class Place
 
   	def initialize(params={})
   		@id=params[:_id].to_s
-	    @address_components= params[:address_components].map {|a| AddressComponent.new(a)}
+	    @address_components= params[:address_components].map {|a| AddressComponent.new(a)} if !params[:address_components].nil?
 	    @formatted_address= params[:formatted_address]
 	    @location = Point.new(params[:geometry][:geolocation])
   	end
@@ -29,7 +29,7 @@ class Place
 
 	def self.find id
 		result=collection.find({:_id=>BSON::ObjectId.from_string(id.to_s)}).first
-		Place.new(result)
+		result.nil? ? nil: Place.new(result)
 	end
 
 	def self.all (offset=0, limit=nil)
@@ -43,8 +43,7 @@ class Place
 	end
 
 	def destroy
-		self.class.collection
-              .delete_one 
+		self.class.collection.find({_id: BSON::ObjectId.from_string(@id)}).delete_one 
 	end
 	
 	def self.get_address_components( sort={:_id => 1}, offset=0, limit=9999999999999)
@@ -74,16 +73,20 @@ class Place
 		self.collection.indexes.drop_one("geometry.geolocation_2dsphere")
 	end
 	
-	def self.near (point, max_meters=0)
-		self.collection.find('geometry.geolocation' => {:$near => {:$geometry => point.to_hash, :$maxDistance => max_meters}})
+	def self.near (point, max_meters = nil)
+		near_query={:$geometry=>point.to_hash}
+	    near_query[:$maxDistance]=max_meters if !max_meters.nil?
+	    collection.find(:'geometry.geolocation'=>{:$near=>near_query})
 	end
 	
-	def near( max_dist = 0)
+	def near( max_dist = nil)
 		
-	  self.class.to_places(self.near(@location, max_dist))
+	  self.class.to_places(self.class.near(@location, max_dist))
 	 	
 	 	
 	end
+	
+	
 
 	def self.to_places(coll)
 	    result=[]
