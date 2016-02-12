@@ -1,5 +1,6 @@
 class Place
-	include ActionView::Helpers
+	include ActiveModel::Model
+	
 	attr_accessor :id, :formatted_address, :location, :address_components
 
 	def self.mongo_client
@@ -86,7 +87,14 @@ class Place
 	 	
 	end
 	
-	
+	def photos (offset=0, limit=nil)
+
+		result=Photo.find_photos_for_place(@id).skip(offset)
+		result=result.limit if !limit.nil?
+		result.map do |photo|
+			Photo.new(photo)
+		end
+	end
 
 	def self.to_places(coll)
 	    result=[]
@@ -95,4 +103,8 @@ class Place
 	   	end
 	   	result
   	end
+  	
+  	def persisted?
+		!@id.nil?
+	end
 end
